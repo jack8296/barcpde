@@ -131,7 +131,7 @@ export function Tab() {
               <Input id="name" name="name" onChange={handleChange} />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="username">Mac Address</Label>
+              <Label htmlFor="username">Serial Number</Label>
               <Input id="username" name="macAddress" onChange={handleChange} />
             </div>
             <div className="space-y-1">
