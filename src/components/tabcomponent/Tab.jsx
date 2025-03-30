@@ -81,12 +81,11 @@ export function Tab() {
     printWindow.document.close();
     printWindow.print();
   };
-
   useEffect(() => {
     const requestCameraAccess = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
+          video: { facingMode: "environment" }, // Access the back camera
         });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
