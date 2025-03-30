@@ -187,16 +187,18 @@ export function Tab() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <div className="flex flex-col items-center gap-4 p-4">
+            <div className="flex flex-col items-center gap-4 p-4 w-full h-full">
               <h2 className="text-xl font-bold">QR Code Scanner</h2>
               {error ? (
                 <p className="text-red-500">{error}</p>
               ) : (
-                <video
-                  ref={videoRef}
-                  className="w-64 h-64 border rounded-lg shadow-md"
-                  autoPlay
-                />
+                <div className="relative w-full h-full">
+                  <video
+                    ref={videoRef}
+                    className="absolute top-0 left-0 w-full h-full object-cover border rounded-lg shadow-md"
+                    autoPlay
+                  />
+                </div>
               )}
               <p className="text-lg">Scanned Data: {qrData}</p>
             </div>
