@@ -22,6 +22,7 @@ export function Tab() {
   });
 
   const [qrData, setQrData] = useState("No result");
+  const [error, setError] = useState(null);
   const videoRef = useRef(null);
   const [generateBarcode, setGenerateBarcode] = useState("");
 
@@ -82,17 +83,30 @@ export function Tab() {
   };
 
   useEffect(() => {
-    if (videoRef.current) {
-      const scanner = new QrScanner(
-        videoRef.current,
-        (result) => setQrData(result.data),
-        {
-          onDecodeError: (error) => console.log(error),
+    const requestCameraAccess = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
         }
-      );
-      scanner.start();
-      return () => scanner.stop();
-    }
+        const scanner = new QrScanner(
+          videoRef.current,
+          (result) => setQrData(result.data),
+          {
+            onDecodeError: (err) => console.log(err),
+          }
+        );
+        scanner.start();
+        return () => scanner.stop();
+      } catch (err) {
+        setError("Camera access denied or unavailable");
+        console.error("Camera Error:", err);
+      }
+    };
+
+    requestCameraAccess();
   }, []);
   return (
     <Tabs
@@ -176,10 +190,15 @@ export function Tab() {
           <CardContent className="space-y-2">
             <div className="flex flex-col items-center gap-4 p-4">
               <h2 className="text-xl font-bold">QR Code Scanner</h2>
-              <video
-                ref={videoRef}
-                className="w-64 h-64 border rounded-lg shadow-md"
-              />
+              {error ? (
+                <p className="text-red-500">{error}</p>
+              ) : (
+                <video
+                  ref={videoRef}
+                  className="w-64 h-64 border rounded-lg shadow-md"
+                  autoPlay
+                />
+              )}
               <p className="text-lg">Scanned Data: {qrData}</p>
             </div>
           </CardContent>
