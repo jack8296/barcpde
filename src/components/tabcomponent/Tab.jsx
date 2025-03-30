@@ -10,9 +10,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useRef, useEffect } from "react";
 import QRCode from "react-qr-code";
-
+import QrScanner from "qr-scanner";
 export function Tab() {
   const [barcode, setBarcode] = useState({
     name: "",
@@ -21,6 +21,8 @@ export function Tab() {
     user: "",
   });
 
+  const [qrData, setQrData] = useState("No result");
+  const videoRef = useRef(null);
   const [generateBarcode, setGenerateBarcode] = useState("");
 
   const handleChange = useCallback((e) => {
@@ -79,8 +81,24 @@ export function Tab() {
     printWindow.print();
   };
 
+  useEffect(() => {
+    if (videoRef.current) {
+      const scanner = new QrScanner(
+        videoRef.current,
+        (result) => setQrData(result.data),
+        {
+          onDecodeError: (error) => console.log(error),
+        }
+      );
+      scanner.start();
+      return () => scanner.stop();
+    }
+  }, []);
   return (
-    <Tabs defaultValue="generator" className="w-[500px]">
+    <Tabs
+      defaultValue="generator"
+      className="w-full max-w-[500px] sm:w-[400px] md:w-[450px] lg:w-[500px]"
+    >
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="generator">QR Generator</TabsTrigger>
         <TabsTrigger value="scannner">QR Scanner</TabsTrigger>
@@ -155,7 +173,16 @@ export function Tab() {
               device?
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">hellow</CardContent>
+          <CardContent className="space-y-2">
+            <div className="flex flex-col items-center gap-4 p-4">
+              <h2 className="text-xl font-bold">QR Code Scanner</h2>
+              <video
+                ref={videoRef}
+                className="w-64 h-64 border rounded-lg shadow-md"
+              />
+              <p className="text-lg">Scanned Data: {qrData}</p>
+            </div>
+          </CardContent>
         </Card>
       </TabsContent>
     </Tabs>
