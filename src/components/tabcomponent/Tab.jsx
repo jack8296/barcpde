@@ -142,7 +142,7 @@ export function Tab() {
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="space-y-1">
-              <Label htmlFor="assets">Assets's Unique Code</Label>
+              <Label htmlFor="assets">Asset's Unique Code</Label>
               <Input
                 id="assets"
                 name="assets"
