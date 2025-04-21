@@ -81,32 +81,41 @@ export function Tab() {
     printWindow.document.close();
     printWindow.print();
   };
+
   useEffect(() => {
     const requestCameraAccess = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" }, // Access the back camera
+          video: true, // <-- Changed from environment to true
         });
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+
+          const scanner = new QrScanner(
+            videoRef.current,
+            (result) => setQrData(result.data),
+            {
+              onDecodeError: (err) => console.warn("Decode error:", err),
+            }
+          );
+
+          scanner.start();
+
+          return () => {
+            scanner.stop();
+            stream.getTracks().forEach((track) => track.stop());
+          };
         }
-        const scanner = new QrScanner(
-          videoRef.current,
-          (result) => setQrData(result.data),
-          {
-            onDecodeError: (err) => console.log(err),
-          }
-        );
-        scanner.start();
-        return () => scanner.stop();
       } catch (err) {
-        setError("Camera access denied or unavailable");
+        setError(`Camera access denied: ${err.message}`);
         console.error("Camera Error:", err);
       }
     };
 
     requestCameraAccess();
   }, []);
+
   return (
     <Tabs
       defaultValue="generator"
