@@ -15,14 +15,18 @@ import QRCode from "react-qr-code";
 import QrScanner from "qr-scanner";
 export function Tab() {
   const [barcode, setBarcode] = useState({
+    assets: "",
     name: "",
     macAddress: "",
     branch: "",
     user: "",
   });
+  const macRegex =
+    /\b([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})\b|\b([0-9A-Fa-f]{4}\.){2}([0-9A-Fa-f]{4})\b/;
 
   const [qrData, setQrData] = useState("No result");
   const [error, setError] = useState(null);
+  const [qrError, setQrError] = useState(null);
   const videoRef = useRef(null);
   const [generateBarcode, setGenerateBarcode] = useState("");
 
@@ -57,14 +61,31 @@ export function Tab() {
   const generateBarcodeHandle = useCallback(
     (e) => {
       e.preventDefault();
+      if (
+        !barcode.assets ||
+        !barcode.name ||
+        !barcode.macAddress ||
+        !barcode.branch ||
+        !barcode.user
+      ) {
+        setQrError("Please fill in all fields.");
+        return;
+      }
 
+      if (!macRegex.test(barcode.macAddress)) {
+        setQrError("Invalid MAC address format.");
+        return;
+      }
       setGenerateBarcode(
-        `${barcode.name}_${barcode.macAddress}_${barcode.branch}_${barcode.user}`
+        `${barcode.assets}_${barcode.name}_${barcode.macAddress}_${barcode.branch}_${barcode.user}`
       );
     },
     [barcode]
   );
 
+  const handleFocused = useCallback(() => {
+    setQrError(null);
+  }, []);
   const handlePrint = () => {
     const svg = document.querySelector("svg");
     const clonedSvg = svg.cloneNode(true);
@@ -121,21 +142,67 @@ export function Tab() {
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="space-y-1">
-              <Label htmlFor="name">Product Name</Label>
-              <Input id="name" name="name" onChange={handleChange} />
+              <Label htmlFor="assets">Assets's Unique Code</Label>
+              <Input
+                id="assets"
+                name="assets"
+                onChange={handleChange}
+                onFocus={handleFocused}
+              />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="username">Serial Number</Label>
-              <Input id="username" name="macAddress" onChange={handleChange} />
+              <Label htmlFor="name">Brand Name</Label>
+              <Input
+                id="name"
+                name="name"
+                onChange={handleChange}
+                onFocus={handleFocused}
+              />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="branch">Branch</Label>
-              <Input id="branch" name="branch" onChange={handleChange} />
+              <Label htmlFor="username">Mac Address</Label>
+              <Input
+                id="username"
+                name="macAddress"
+                onChange={handleChange}
+                onFocus={handleFocused}
+              />
             </div>
+            <div className="space-y-1">
+              <label
+                htmlFor="branch"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Select Branch
+              </label>
+              <select
+                id="branch"
+                name="branch"
+                onChange={handleChange}
+                onFocus={handleFocused}
+                className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="">Select a branch</option>
+                <option value="Head Office">Head Office</option>
+                <option value="Diktel">Diktel</option>
+                <option value="Halesi">Halesi</option>
+                <option value="Baksila">Baksila</option>
+                <option value="Aiselukharka">Aiselukharka</option>
+                <option value="Simpani">Simpani</option>
+                <option value="Chisapani">Chisapani</option>
+              </select>
+            </div>
+
             <div className="space-y-1">
               <Label htmlFor="own">Own By</Label>
-              <Input id="own" name="user" onChange={handleChange} />
+              <Input
+                id="own"
+                name="user"
+                onChange={handleChange}
+                onFocus={handleFocused}
+              />
             </div>
+            <div className="text-red-600 text-sm">{qrError}</div>
           </CardContent>
           <CardFooter>
             <Button onClick={generateBarcodeHandle}>Generate Barcode</Button>
