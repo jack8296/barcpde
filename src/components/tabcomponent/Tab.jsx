@@ -173,7 +173,7 @@ export function Tab() {
                 htmlFor="branch"
                 className="block text-sm font-medium text-gray-700"
               >
-                Select Branch
+                Branch
               </label>
               <select
                 id="branch"
