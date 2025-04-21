@@ -81,39 +81,24 @@ export function Tab() {
     printWindow.document.close();
     printWindow.print();
   };
-
   useEffect(() => {
-    const requestCameraAccess = async () => {
+    const getCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: true, // <-- Changed from environment to true
+          video: true, // Use default camera
         });
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-
-          const scanner = new QrScanner(
-            videoRef.current,
-            (result) => setQrData(result.data),
-            {
-              onDecodeError: (err) => console.warn("Decode error:", err),
-            }
-          );
-
-          scanner.start();
-
-          return () => {
-            scanner.stop();
-            stream.getTracks().forEach((track) => track.stop());
-          };
+          console.log("✅ Camera stream set successfully");
         }
       } catch (err) {
-        setError(`Camera access denied: ${err.message}`);
-        console.error("Camera Error:", err);
+        console.error("❌ Failed to access camera:", err);
+        setError(`Camera access error: ${err.message}`);
       }
     };
 
-    requestCameraAccess();
+    getCamera();
   }, []);
 
   return (
