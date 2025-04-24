@@ -129,11 +129,43 @@ export function Tab() {
         console.error(`${err.name}: ${err.message}`);
       });
   };
+
+  let qrScanner;
+
+  const startScanner = async () => {
+    try {
+      if (videoRef.current) {
+        qrScanner = new QrScanner(
+          videoRef.current,
+          (result) => {
+            console.log("Scanned result:", result.data);
+            setQrData(result.data);
+          },
+          {
+            returnDetailedScanResult: true,
+          }
+        );
+        await qrScanner.start();
+      }
+    } catch (err) {
+      setError(err.message || "Error starting the scanner");
+    }
+  };
+
   useEffect(() => {
     getCamera();
+    startScanner();
+    return () => {
+      if (qrScanner) {
+        qrScanner.stop();
+        qrScanner.destroy();
+      }
+    };
   }, []);
+
   setTimeout(() => {
     getCamera();
+    startScanner();
   }, 1000);
   return (
     <Tabs
