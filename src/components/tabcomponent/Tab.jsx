@@ -109,7 +109,7 @@ export function Tab() {
       video: {
         facingMode: "environment",
         width: { ideal: 1280 },
-        height: { ideal: 1420 },
+        height: { ideal: 520 },
       },
     };
 
