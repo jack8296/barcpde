@@ -104,19 +104,29 @@ export function Tab() {
   };
   useEffect(() => {
     const getCamera = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true, // Use default camera
-        });
+      const constraints = {
+        audio: false,
+        video: {
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      };
 
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          console.log("✅ Camera stream set successfully");
-        }
-      } catch (err) {
-        console.error("❌ Failed to access camera:", err);
-        setError(`Camera access error: ${err.message}`);
-      }
+      navigator.mediaDevices
+        .getUserMedia(constraints)
+        .then((mediaStream) => {
+          const video = document.querySelector("video");
+          console.log("mediaStream", mediaStream);
+          video.srcObject = mediaStream;
+          video.onloadedmetadata = () => {
+            video.play();
+          };
+        })
+        .catch((err) => {
+          // always check for errors at the end.
+          console.error(`${err.name}: ${err.message}`);
+        });
     };
 
     getCamera();
@@ -254,11 +264,7 @@ export function Tab() {
                 <p className="text-red-500">{error}</p>
               ) : (
                 <div className="relative w-full h-full">
-                  <video
-                    ref={videoRef}
-                    className="absolute top-0 left-0 w-full h-full object-cover border rounded-lg shadow-md"
-                    autoPlay
-                  />
+                  <video autoplay playsinline></video>
                 </div>
               )}
               <p className="text-lg">Scanned Data: {qrData}</p>
