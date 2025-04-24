@@ -14,6 +14,8 @@ import { useCallback, useState, useRef, useEffect } from "react";
 import QRCode from "react-qr-code";
 import QrScanner from "qr-scanner";
 export function Tab() {
+  const vedioRef = useRef(null);
+
   const [barcode, setBarcode] = useState({
     assets: "",
     name: "",
@@ -102,36 +104,37 @@ export function Tab() {
     printWindow.document.close();
     printWindow.print();
   };
-  useEffect(() => {
-    const getCamera = async () => {
-      const constraints = {
-        audio: false,
-        video: {
-          facingMode: "environment",
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-      };
-
-      navigator.mediaDevices
-        .getUserMedia(constraints)
-        .then((mediaStream) => {
-          const video = document.querySelector("video");
-          console.log("mediaStream", mediaStream);
-          video.srcObject = mediaStream;
-          video.onloadedmetadata = () => {
-            video.play();
-          };
-        })
-        .catch((err) => {
-          // always check for errors at the end.
-          console.error(`${err.name}: ${err.message}`);
-        });
+  const getCamera = async () => {
+    const constraints = {
+      audio: true,
+      video: {
+        facingMode: "environment",
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
     };
 
+    navigator.mediaDevices
+      .getUserMedia(constraints)
+      .then((mediaStream) => {
+        if (vedioRef.current) {
+          vedioRef.current.srcObject = mediaStream;
+          vedioRef.current.onloadedmetadata = () => {
+            vedioRef.current.play();
+          };
+        }
+      })
+      .catch((err) => {
+        // always check for errors at the end.
+        console.error(`${err.name}: ${err.message}`);
+      });
+  };
+  useEffect(() => {
     getCamera();
   }, []);
-
+  setTimeout(() => {
+    getCamera();
+  }, 1000);
   return (
     <Tabs
       defaultValue="generator"
@@ -139,7 +142,9 @@ export function Tab() {
     >
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="generator">QR Generator</TabsTrigger>
-        <TabsTrigger value="scannner">QR Scanner</TabsTrigger>
+        <TabsTrigger value="scannner" onClick={getCamera}>
+          QR Scanner
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="generator">
         <Card>
@@ -264,7 +269,7 @@ export function Tab() {
                 <p className="text-red-500">{error}</p>
               ) : (
                 <div className="relative w-full h-full">
-                  <video autoplay playsinline></video>
+                  <video autoPlay playsInline ref={vedioRef}></video>
                 </div>
               )}
               <p className="text-lg">Scanned Data: {qrData}</p>
