@@ -13,8 +13,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCallback, useState, useRef, useEffect } from "react";
 import QRCode from "react-qr-code";
 import QrScanner from "qr-scanner";
+
 export function Tab() {
-  const vedioRef = useRef(null);
+  const videoRef = useRef(null);
+  const qrScannerRef = useRef(null);
 
   const [barcode, setBarcode] = useState({
     assets: "",
@@ -23,29 +25,28 @@ export function Tab() {
     branch: "",
     user: "",
   });
+
   const macRegex =
     /\b([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})\b|\b([0-9A-Fa-f]{4}\.){2}([0-9A-Fa-f]{4})\b/;
 
   const [qrData, setQrData] = useState("No result");
   const [error, setError] = useState(null);
   const [qrError, setQrError] = useState(null);
-  const videoRef = useRef(null);
   const [generateBarcode, setGenerateBarcode] = useState("");
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
-    setBarcode((prev) => {
-      return {
-        ...prev,
-        [name]: value,
-      };
-    });
+    setBarcode((prev) => ({ ...prev, [name]: value }));
+  }, []);
+
+  const handleFocused = useCallback(() => {
+    setQrError(null);
   }, []);
 
   const handleDownload = useCallback(() => {
     const svg = document.querySelector("svg");
     const clonedSvg = svg.cloneNode(true);
-    clonedSvg.setAttribute("width", "50"); // Smaller download size
+    clonedSvg.setAttribute("width", "50");
     clonedSvg.setAttribute("height", "50");
 
     const serializer = new XMLSerializer();
@@ -59,6 +60,23 @@ export function Tab() {
     a.click();
     document.body.removeChild(a);
   }, []);
+
+  const handlePrint = () => {
+    const svg = document.querySelector("svg");
+    const clonedSvg = svg.cloneNode(true);
+    clonedSvg.setAttribute("width", "50");
+    clonedSvg.setAttribute("height", "50");
+
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(
+      `<html><head><title>Print Barcode</title></head>
+       <body style="text-align: center;">
+         ${clonedSvg.outerHTML}
+       </body></html>`
+    );
+    printWindow.document.close();
+    printWindow.print();
+  };
 
   const generateBarcodeHandle = useCallback(
     (e) => {
@@ -78,6 +96,7 @@ export function Tab() {
         setQrError("Invalid MAC address format.");
         return;
       }
+
       setGenerateBarcode(
         `${barcode.assets}_${barcode.name}_${barcode.macAddress}_${barcode.branch}_${barcode.user}`
       );
@@ -85,67 +104,43 @@ export function Tab() {
     [barcode]
   );
 
-  const handleFocused = useCallback(() => {
-    setQrError(null);
-  }, []);
-  const handlePrint = () => {
-    const svg = document.querySelector("svg");
-    const clonedSvg = svg.cloneNode(true);
-    clonedSvg.setAttribute("width", "50"); // Set very small width
-    clonedSvg.setAttribute("height", "50"); // Set very small height
-
-    const printWindow = window.open("", "_blank");
-    printWindow.document.write(
-      `<html><head><title>Print Barcode</title></head>
-     <body style="text-align: center;">
-       ${clonedSvg.outerHTML}
-     </body></html>`
-    );
-    printWindow.document.close();
-    printWindow.print();
-  };
   const getCamera = async () => {
     const constraints = {
-      audio: true,
       video: {
         facingMode: "environment",
         width: { ideal: 1280 },
-        height: { ideal: 720 },
+        height: { ideal: 420 },
       },
     };
 
-    navigator.mediaDevices
-      .getUserMedia(constraints)
-      .then((mediaStream) => {
-        if (vedioRef.current) {
-          vedioRef.current.srcObject = mediaStream;
-          vedioRef.current.onloadedmetadata = () => {
-            vedioRef.current.play();
-          };
-        }
-      })
-      .catch((err) => {
-        // always check for errors at the end.
-        console.error(`${err.name}: ${err.message}`);
-      });
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia(
+        constraints
+      );
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current.play();
+        };
+      }
+    } catch (err) {
+      console.error(err.name + ": " + err.message);
+      setError(err.message || "Camera access error");
+    }
   };
-
-  let qrScanner;
 
   const startScanner = async () => {
     try {
       if (videoRef.current) {
-        qrScanner = new QrScanner(
+        qrScannerRef.current = new QrScanner(
           videoRef.current,
           (result) => {
             console.log("Scanned result:", result.data);
             setQrData(result.data);
           },
-          {
-            returnDetailedScanResult: true,
-          }
+          { returnDetailedScanResult: true }
         );
-        await qrScanner.start();
+        await qrScannerRef.current.start();
       }
     } catch (err) {
       setError(err.message || "Error starting the scanner");
@@ -155,79 +150,51 @@ export function Tab() {
   useEffect(() => {
     getCamera();
     startScanner();
+
     return () => {
-      if (qrScanner) {
-        qrScanner.stop();
-        qrScanner.destroy();
+      if (qrScannerRef.current) {
+        qrScannerRef.current.stop();
+        qrScannerRef.current.destroy();
       }
     };
   }, []);
 
-  setTimeout(() => {
-    getCamera();
-    startScanner();
-  }, 1000);
   return (
-    <Tabs
-      defaultValue="generator"
-      className="w-full max-w-[500px] sm:w-[400px] md:w-[450px] lg:w-[500px]"
-    >
+    <Tabs defaultValue="generator" className="w-full max-w-[500px]">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="generator">QR Generator</TabsTrigger>
         <TabsTrigger value="scannner" onClick={getCamera}>
           QR Scanner
         </TabsTrigger>
       </TabsList>
+
+      {/* QR Generator */}
       <TabsContent value="generator">
         <Card>
           <CardHeader>
             <CardTitle>Details of Assets</CardTitle>
-            <CardDescription>
-              Make sure to enter correction information. Click save when you're
-              done.
-            </CardDescription>
+            <CardDescription>Enter info and click Generate.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
+            {["assets", "name", "macAddress", "user"].map((field) => (
+              <div key={field} className="space-y-1">
+                <Label htmlFor={field}>{field}</Label>
+                <Input
+                  id={field}
+                  name={field}
+                  onChange={handleChange}
+                  onFocus={handleFocused}
+                />
+              </div>
+            ))}
             <div className="space-y-1">
-              <Label htmlFor="assets">Asset's Unique Code</Label>
-              <Input
-                id="assets"
-                name="assets"
-                onChange={handleChange}
-                onFocus={handleFocused}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="name">Brand Name</Label>
-              <Input
-                id="name"
-                name="name"
-                onChange={handleChange}
-                onFocus={handleFocused}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="username">Mac Address</Label>
-              <Input
-                id="username"
-                name="macAddress"
-                onChange={handleChange}
-                onFocus={handleFocused}
-              />
-            </div>
-            <div className="space-y-1">
-              <label
-                htmlFor="branch"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Branch
-              </label>
+              <Label htmlFor="branch">Branch</Label>
               <select
                 id="branch"
                 name="branch"
                 onChange={handleChange}
                 onFocus={handleFocused}
-                className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md"
               >
                 <option value="">Select a branch</option>
                 <option value="Head Office">Head Office</option>
@@ -239,70 +206,51 @@ export function Tab() {
                 <option value="Chisapani">Chisapani</option>
               </select>
             </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="own">Own By</Label>
-              <Input
-                id="own"
-                name="user"
-                onChange={handleChange}
-                onFocus={handleFocused}
-              />
-            </div>
             <div className="text-red-600 text-sm">{qrError}</div>
           </CardContent>
           <CardFooter>
             <Button onClick={generateBarcodeHandle}>Generate Barcode</Button>
           </CardFooter>
-          <CardContent>
-            {generateBarcode && (
-              <>
-                <div className="text-2xl font-bold  text-center">Barcode</div>
-                <div className="flex justify-between items-center flex-col mt-5 ">
-                  <div className="flex justify-center items-center flex-col mb-5">
-                    <QRCode
-                      size={50} // Further reduced size
-                      style={{
-                        height: "auto",
-                        maxWidth: "25%", // Reduce display size
-                        width: "25%",
-                      }}
-                      value={generateBarcode}
-                      viewBox={`0 0 50 50`} // Match size
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2 align-center">
-                    <Button size="sm" variant="outline" onClick={handlePrint}>
-                      Print
-                    </Button>
-                    <Button size="sm" variant="link" onClick={handleDownload}>
-                      Download
-                    </Button>
-                  </div>
+          {generateBarcode && (
+            <CardContent>
+              <div className="text-2xl font-bold text-center">Barcode</div>
+              <div className="flex flex-col items-center mt-4">
+                <QRCode
+                  size={50}
+                  style={{ height: "auto", maxWidth: "25%", width: "25%" }}
+                  value={generateBarcode}
+                  viewBox="0 0 50 50"
+                />
+                <div className="mt-4 flex gap-2">
+                  <Button size="sm" variant="outline" onClick={handlePrint}>
+                    Print
+                  </Button>
+                  <Button size="sm" variant="link" onClick={handleDownload}>
+                    Download
+                  </Button>
                 </div>
-              </>
-            )}
-          </CardContent>
+              </div>
+            </CardContent>
+          )}
         </Card>
       </TabsContent>
+
+      {/* QR Scanner */}
       <TabsContent value="scannner">
         <Card>
           <CardHeader>
             <CardTitle>Scanner</CardTitle>
             <CardDescription>
-              Please scan with this software to see information about your
-              device?
+              Scan QR to view the asset information.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex flex-col items-center gap-4 p-4 w-full h-full">
+          <CardContent>
+            <div className="flex flex-col items-center gap-4 p-4 w-full">
               <h2 className="text-xl font-bold">QR Code Scanner</h2>
               {error ? (
                 <p className="text-red-500">{error}</p>
               ) : (
-                <div className="relative w-full h-full">
-                  <video autoPlay playsInline ref={vedioRef}></video>
-                </div>
+                <video autoPlay playsInline ref={videoRef} />
               )}
               <p className="text-lg">Scanned Data: {qrData}</p>
             </div>
