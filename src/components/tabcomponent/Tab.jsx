@@ -106,6 +106,7 @@ export function Tab() {
 
   const getCamera = async () => {
     const constraints = {
+      audio: true,
       video: {
         facingMode: "environment",
         width: { ideal: 1280 },
